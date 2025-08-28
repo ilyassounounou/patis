@@ -18,6 +18,7 @@ const createCommande = async (req, res) => {
     // Calculate total
     const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const reste = total - avance;
+    // nadi
     
     // Generate unique code
     let code;
