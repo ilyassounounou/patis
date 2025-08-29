@@ -165,27 +165,28 @@ const Orders = () => {
     printToThermalPrinter(order);
   };
 
-  const handleSendToCart = async (order) => {
-    setSendingToCart(true);
-    setSentOrderId(order._id);
+const handleSendToCart = async (order) => {
+  setSendingToCart(true);
+  setSentOrderId(order._id);
+  
+  try {
+    // Add each item from the order to the cart
+    for (const item of order.items) {
+      await addToCart(item.productId || item._id, item.quantity);
+    }
     
-    try {
-      // Add each item from the order to the cart
-      for (const item of order.items) {
-        await addToCart(item.productId || item._id, item.quantity);
-      }
-      
-      // Show success for 2 seconds
-      setTimeout(() => {
-        setSendingToCart(false);
-        setSentOrderId(null);
-      }, 2000);
-    } catch (error) {
-      console.error("Error sending to cart:", error);
+    // Show success for 2 seconds
+    setTimeout(() => {
       setSendingToCart(false);
       setSentOrderId(null);
-    }
-  };
+    }, 2000);
+  } catch (error) {
+    console.error("Error sending to cart:", error);
+    setSendingToCart(false);
+    setSentOrderId(null);
+  }
+};
+
 
   // Auto print when order is selected (fallback)
   useEffect(() => {
@@ -338,7 +339,7 @@ const Orders = () => {
                             ? 'bg-green-600' 
                             : 'bg-blue-600 hover:bg-blue-700'
                         } text-white px-5 py-2.5 rounded-lg transition-colors duration-200 font-medium`}
-                      >
+                       >
                         {sendingToCart && sentOrderId === order._id ? (
                           <>
                             <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
