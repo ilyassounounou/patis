@@ -14,7 +14,9 @@ import {
   FiMapPin,
   FiPhone,
   FiCreditCard,
-  FiCalendar
+  FiCalendar,
+  FiDollarSign,
+  FiShoppingCart
 } from "react-icons/fi";
 
 const Orders = ({ token }) => {
@@ -45,12 +47,13 @@ const Orders = ({ token }) => {
   const deleteOrder = async (orderId) => {
     if (!window.confirm("Are you sure you want to delete this order?")) return;
     try {
-      const response = await axios.delete(`${backend_url}/api/order/delete/${orderId}`, {
-        headers: { token },
-      });
+      const response = await axios.delete(
+        `${backend_url}/api/orders/delete/${orderId}`,
+        { headers: { token } }
+      );
       if (response.data.success) {
         toast.success("Order deleted successfully");
-        fetchAllOrders();
+        fetchAllOrders(); // Refresh the orders list
       } else {
         toast.error(response.data.message);
       }
@@ -62,7 +65,7 @@ const Orders = ({ token }) => {
   const statusHandler = async (event, orderId) => {
     try {
       const response = await axios.post(
-        backend_url + "/api/order/status",
+        backend_url + "/api/orders/status",
         { orderId, status: event.target.value },
         { headers: { token } }
       );
@@ -90,12 +93,23 @@ const Orders = ({ token }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Order Placed": return "border-l-blue-500";
-      case "Packing": return "border-l-yellow-500";
-      case "Shipped": return "border-l-orange-500";
-      case "Out for Delivery": return "border-l-purple-500";
-      case "Delivered": return "border-l-green-500";
-      default: return "border-l-gray-500";
+      case "Order Placed": return "border-l-blue-500 bg-blue-50";
+      case "Packing": return "border-l-yellow-500 bg-yellow-50";
+      case "Shipped": return "border-l-orange-500 bg-orange-50";
+      case "Out for Delivery": return "border-l-purple-500 bg-purple-50";
+      case "Delivered": return "border-l-green-500 bg-green-50";
+      default: return "border-l-gray-500 bg-gray-50";
+    }
+  };
+
+  const getStatusTextColor = (status) => {
+    switch (status) {
+      case "Order Placed": return "text-blue-700";
+      case "Packing": return "text-yellow-700";
+      case "Shipped": return "text-orange-700";
+      case "Out for Delivery": return "text-purple-700";
+      case "Delivered": return "text-green-700";
+      default: return "text-gray-700";
     }
   };
 
@@ -112,32 +126,35 @@ const Orders = ({ token }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Orders Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <FiShoppingCart className="text-blue-600" />
+            Orders Management
+          </h1>
           <p className="text-gray-600 mt-2">Manage and track all customer orders</p>
         </div>
 
         {orders.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl shadow-sm">
+          <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-200">
             <FiPackage className="mx-auto text-6xl text-gray-400 mb-4" />
             <h3 className="text-xl font-semibold text-gray-600">No orders found</h3>
             <p className="text-gray-500 mt-2">Orders will appear here once they are placed.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {orders.map((order) => (
               <div
                 key={order._id}
-                className={`bg-white rounded-xl shadow-sm border-l-4 ${getStatusColor(order.status)} p-5 hover:shadow-md transition-shadow`}
+                className={`bg-white rounded-xl shadow-sm border-l-4 ${getStatusColor(order.status)} p-5 hover:shadow-md transition-all duration-300 border border-gray-200`}
               >
                 {/* Order Header */}
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-2">
                     {getStatusIcon(order.status)}
                     <span className="text-sm font-semibold text-gray-700">
-                      #{order._id.slice(-6).toUpperCase()}
+                      Order #{order._id.slice(-6).toUpperCase()}
                     </span>
                   </div>
                   <button
@@ -150,82 +167,87 @@ const Orders = ({ token }) => {
                 </div>
 
                 {/* Customer Info */}
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <FiUser className="text-gray-400" />
-                    <span className="text-gray-700">
-                      {order.address?.firstName} {order.address?.lastName}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <FiPhone className="text-gray-400" />
-                    <span className="text-gray-700">{order.address?.phone}</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-sm">
-                    <FiMapPin className="text-gray-400 mt-1" />
-                    <span className="text-gray-700 line-clamp-2">
-                      {order.address?.street}, {order.address?.city}
-                    </span>
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2 flex items-center gap-1">
+                    <FiUser size={12} /> Customer
+                  </h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <FiUser className="text-gray-400" size={14} />
+                      <span>{order.customer?.name || "N/A"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <FiPhone className="text-gray-400" size={14} />
+                      <span>{order.customer?.phone || "N/A"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <FiMapPin className="text-gray-400" size={14} />
+                      <span className="truncate">{order.address || "N/A"}</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Order Items */}
                 <div className="mb-4">
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Items</h4>
-                  <div className="space-y-1">
-                    {order.items.slice(0, 3).map((item, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span className="text-gray-700 truncate max-w-[60%]">
-                          {item.name} × {item.quantity}
-                        </span>
-                        <span className="text-gray-900 font-medium">
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2 flex items-center gap-1">
+                    <FiPackage size={12} /> Order Items
+                  </h4>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                    {order.items.map((item, index) => (
+                      <div key={index} className="flex justify-between items-center text-sm p-2 bg-white rounded-md border border-gray-100">
+                        <div className="flex-1">
+                          <span className="font-medium text-gray-800 block truncate">{item.name}</span>
+                          <span className="text-gray-500 text-xs">Qty: {item.quantity}</span>
+                        </div>
+                        <span className="text-gray-900 font-medium whitespace-nowrap">
                           {currency}
                           {(item.price * item.quantity).toFixed(2)}
                         </span>
                       </div>
                     ))}
-                    {order.items.length > 3 && (
-                      <div className="text-xs text-gray-500 text-center pt-1">
-                        + {order.items.length - 3} more items
-                      </div>
-                    )}
                   </div>
                 </div>
 
                 {/* Order Details */}
-                <div className="space-y-2 text-sm mb-4">
+                <div className="space-y-2 text-sm mb-4 p-3 bg-gray-50 rounded-lg">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Total Amount:</span>
+                    <span className="text-gray-500 flex items-center gap-1">
+                      <FiDollarSign size={14} /> Total Amount:
+                    </span>
                     <span className="font-semibold text-gray-900">
                       {currency}
                       {order.amount?.toFixed(2)}
                     </span>
                   </div>
+                  
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Payment:</span>
-                    <span className={`font-medium ${order.payment ? 'text-green-600' : 'text-orange-600'}`}>
-                      {order.payment ? "Completed" : "Pending"}
+                    <span className="text-gray-500 flex items-center gap-1">
+                      <FiCalendar size={14} /> Date:
                     </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Method:</span>
-                    <span className="text-gray-700 capitalize">{order.paymentMethod}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Date:</span>
                     <span className="text-gray-700">
                       {new Date(order.date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500 flex items-center gap-1">
+                      <FiCreditCard size={14} /> Payment:
+                    </span>
+                    <span className="text-gray-700 capitalize">
+                      {order.paymentMethod || "N/A"}
                     </span>
                   </div>
                 </div>
 
                 {/* Status Selector */}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-gray-500 uppercase">Status</label>
-                  <select
-                    onChange={(event) => statusHandler(event, order._id)}
+                <div className="mt-4">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                    Update Status
+                  </label>
+                  <select 
+                    className={`w-full p-2 rounded-md border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${getStatusTextColor(order.status)}`}
                     value={order.status}
-                    className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    onChange={(e) => statusHandler(e, order._id)}
                   >
                     <option value="Order Placed">Order Placed</option>
                     <option value="Packing">Packing</option>

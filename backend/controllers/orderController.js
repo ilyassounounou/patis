@@ -70,12 +70,12 @@ const placeOrder = async (req, res) => {
       await userModel.findByIdAndUpdate(userId, { cartData: {} });
     }
 
-  return res.status(201).json({
-  success: true,
-  message: "Order placed successfully",
-  orderId: newOrder._id,
-  orderData: newOrder, // ✅ إرسال بيانات الطلب
-});
+    return res.status(201).json({
+      success: true,
+      message: "Order placed successfully",
+      orderId: newOrder._id,
+      orderData: newOrder, // ✅ إرسال بيانات الطلب
+    });
 
   } catch (error) {
     console.error("Error in placeOrder:", error);
@@ -87,12 +87,43 @@ const placeOrder = async (req, res) => {
 };
 
 // حذف طلب
+const deleteOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID is required",
+      });
+    }
 
+    const deletedOrder = await orderModel.findByIdAndDelete(orderId);
+    
+    if (!deletedOrder) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Order deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error in deleteOrder:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error deleting order",
+    });
+  }
+};
 
 // عرض جميع الطلبات
-export const listAllOrders = async (req, res) => {
+const allOrders = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
+    const orders = await orderModel.find().sort({ createdAt: -1 }).populate("userId", "name email");
     res.json({ success: true, orders });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -100,23 +131,54 @@ export const listAllOrders = async (req, res) => {
 };
 
 // تحديث الحالة
-export const updateOrderStatus = async (req, res) => {
+const updateStatus = async (req, res) => {
   try {
-    const { orderId } = req.params;
-    const { status } = req.body;
+    const { orderId, status } = req.body;
 
-    const updated = await Order.findByIdAndUpdate(orderId, { status }, { new: true });
-
-    if (!updated) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+    if (!orderId || !status) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID and status are required",
+      });
     }
 
-    res.json({ success: true, message: "Order status updated", order: updated });
+    const validStatuses = [
+      "Order Placed",
+      "Packing",
+      "Shipped",
+      "Out for Delivery",
+      "Delivered",
+    ];
+    
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order status",
+      });
+    }
+
+    const updatedOrder = await orderModel.findByIdAndUpdate(
+      orderId, 
+      { status }, 
+      { new: true }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Order status updated", 
+      order: updatedOrder 
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 const placeOrderStripe = async (req, res) => {
   try {
@@ -212,23 +274,6 @@ const verifyStripe = async (req, res) => {
   }
 };
 
-const allOrders = async (req, res) => {
-  try {
-    const orders = await orderModel
-      .find({})
-      .sort({ createdAt: -1 })
-      .populate("userId", "name email");
-
-    return res.json({
-      success: true,
-      count: orders.length,
-      orders,
-    });
-  } catch (error) {
-    return handleError(res, error, "allOrders");
-  }
-};
-
 const userOrders = async (req, res) => {
   try {
     const { userId } = req.body;
@@ -243,31 +288,6 @@ const userOrders = async (req, res) => {
   }
 };
 
-const updateStatus = async (req, res) => {
-  try {
-    const { orderId, status } = req.body;
-
-    if (!orderId || !status) throw new Error("Order ID and status are required");
-
-    const validStatuses = [
-      "Order Placed",
-      "Processing",
-      "Shipped",
-      "Delivered",
-      "Cancelled",
-    ];
-    if (!validStatuses.includes(status)) throw new Error("Invalid order status");
-
-    const updatedOrder = await orderModel.findByIdAndUpdate(orderId, { status }, { new: true });
-
-    if (!updatedOrder) throw new Error("Order not found");
-
-    return res.json({ success: true, message: "Status updated successfully", order: updatedOrder });
-  } catch (error) {
-    return handleError(res, error, "updateStatus");
-  }
-};
-
 export {
   placeOrder,
   placeOrderStripe,
@@ -275,4 +295,5 @@ export {
   userOrders,
   updateStatus,
   verifyStripe,
+  deleteOrder
 };

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { backend_url, currency } from "../App";
 import { toast } from "react-toastify";
 import { TbTrash } from "react-icons/tb";
+import { FaEdit } from "react-icons/fa";
 
 const List = ({ token }) => {
   const [list, setList] = useState([]);
@@ -45,37 +46,51 @@ const List = ({ token }) => {
   }, []);
 
   return (
-    <div className="px-2 sm:px-8 sm:mt-14">
-      <div className="flex flex-col gap-2">
-        <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] md:grid-cols-[1fr_3.5fr_1.5fr_1fr_1fr] items-center py-1 px-2 bg-white bold-14 sm:bold-15 mb-1 rounded">
-          <h5>Image</h5>
-          <h5>Name</h5>
-          <h5>Category</h5>
-          <h5>Price</h5>
-          <h5>Remove</h5>
-        </div>
-        {/* PRODUCT LIST */}
-        {list.map((item) => (
-          <div
-            key={item._id}
-            className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr] md:grid-cols-[1fr_3.5fr_1.5fr_1fr_1fr] items-center gap-2 p-1 bg-white rounded-xl"
-          >
-            <img
-              src={item.image[0]}
-              alt="prdctImg"
-              className="w-12 rounded-lg"
-            />
-            <h5 className="text-sm font-semibold">{item.name}</h5>
-            <p className="text-sm font-semibold">{item.category}</p>
-            <div className="text-sm font-semibold">
-              {currency}
-              {item.price}
-            </div>
-            <div onClick={() => removeProduct(item._id)}>
-              <TbTrash className="text-right md:text-center cursor-pointer text-lg" />
-            </div>
-          </div>
-        ))}
+    <div className="px-4 sm:px-8 sm:mt-14">
+      <h2 className="text-2xl font-bold mb-6">📦 Product List</h2>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+     {list.map((item) => (
+  <div
+    key={item._id}
+    className="grid grid-cols-[1fr_2fr_1fr_1fr_1fr] items-center gap-4 p-3 bg-white rounded-xl shadow hover:shadow-lg transition"
+  >
+    {/* Product Image */}
+    <img
+      src={item.image}
+      alt={item.name}
+      className="w-16 h-16 object-cover rounded-xl border"
+    />
+
+    {/* Product Name */}
+    <h5 className="text-sm font-semibold truncate">{item.name}</h5>
+
+    {/* Category */}
+    <p className="text-xs text-gray-600">{item.category}</p>
+
+    {/* Price */}
+    <div className="text-sm font-bold text-green-600">
+      {currency}{item.price}
+    </div>
+
+    {/* Actions */}
+    <div className="flex items-center gap-3 justify-end">
+      {/* Edit Button */}
+      <button
+        onClick={() => console.log("Edit product", item._id)}
+        className="px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+      >
+        Edit
+      </button>
+
+      {/* Delete Button */}
+      <TbTrash
+        onClick={() => removeProduct(item._id)}
+        className="cursor-pointer text-red-500 text-lg hover:text-red-700 transition"
+      />
+    </div>
+  </div>
+))}
+
       </div>
     </div>
   );
