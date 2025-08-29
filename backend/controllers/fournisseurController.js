@@ -30,7 +30,7 @@ export const createFournisseur = async (req, res) => {
         
         fournisseur.bonnes.push({
           amount: req.body.amount || 0,
-          images: [imageName], // Utiliser 'images' au lieu de 'image'
+          images: [imageName],
           date: new Date(),
           description: req.body.description || ''
         });
@@ -52,6 +52,19 @@ export const getAllFournisseurs = async (req, res) => {
   try {
     const fournisseurs = await Fournisseur.find().sort({ createdAt: -1 });
     res.json(fournisseurs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Récupérer un fournisseur par ID
+export const getFournisseurById = async (req, res) => {
+  try {
+    const fournisseur = await Fournisseur.findById(req.params.id);
+    if (!fournisseur) {
+      return res.status(404).json({ message: 'Fournisseur non trouvé' });
+    }
+    res.json(fournisseur);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -84,7 +97,7 @@ export const updateFournisseur = async (req, res) => {
         
         fournisseur.bonnes.push({
           amount: req.body.amount || 0,
-          images: [imageName], // Utiliser 'images' au lieu de 'image'
+          images: [imageName],
           date: new Date(),
           description: req.body.description || ''
         });
@@ -101,6 +114,25 @@ export const updateFournisseur = async (req, res) => {
   }
 };
 
+// Basculer l'état masqué d'un fournisseur
+export const toggleHiddenFournisseur = async (req, res) => {
+  try {
+    const { isHidden } = req.body;
+    const fournisseur = await Fournisseur.findById(req.params.id);
+    
+    if (!fournisseur) {
+      return res.status(404).json({ message: 'Fournisseur non trouvé' });
+    }
+
+    fournisseur.isHidden = isHidden;
+    await fournisseur.save();
+    
+    res.json(fournisseur);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 // Supprimer un fournisseur
 export const deleteFournisseur = async (req, res) => {
   try {
@@ -111,7 +143,6 @@ export const deleteFournisseur = async (req, res) => {
 
     // Supprimer les images associées
     for (const bonne of fournisseur.bonnes) {
-      // Utiliser 'images' au lieu de 'image'
       if (bonne.images && bonne.images.length > 0) {
         for (const imageName of bonne.images) {
           const imagePath = path.join(__dirname, '../uploads', imageName);
@@ -334,6 +365,7 @@ export const getBonneDetails = async (req, res) => {
     }
 
     res.json({
+      _id: bonne._id,
       amount: bonne.amount,
       description: bonne.description || '',
       date: bonne.date,
@@ -345,4 +377,3 @@ export const getBonneDetails = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
-

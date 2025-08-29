@@ -13,6 +13,7 @@ const Fournisseur = ({ token }) => {
   const [showStats, setShowStats] = useState(false);
   const [showImagesModal, setShowImagesModal] = useState(false);
   const [selectedBonne, setSelectedBonne] = useState(null);
+  const [showBonneDetails, setShowBonneDetails] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -131,7 +132,7 @@ const Fournisseur = ({ token }) => {
 
   const handleToggleHidden = async (id, isCurrentlyHidden) => {
     try {
-      await axios.patch(`${backend_url}/api/fournisseurs/${id}`, 
+      await axios.patch(`${backend_url}/api/fournisseurs/${id}/toggle-hidden`, 
         { isHidden: !isCurrentlyHidden },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -172,8 +173,6 @@ const Fournisseur = ({ token }) => {
     }
   };
 
-  
-
   const handlePaiement = async (id, amount, bonneId = null) => {
     try {
       await axios.post(`${backend_url}/api/fournisseurs/${id}/paiement`, 
@@ -188,9 +187,18 @@ const Fournisseur = ({ token }) => {
     }
   };
 
-  const handleViewDetails = (fournisseur) => {
-    setSelectedFournisseur(fournisseur);
-    setShowDetails(true);
+  const handleViewDetails = async (fournisseur) => {
+    try {
+      // Récupérer les détails complets du fournisseur avec les images
+      const response = await axios.get(`${backend_url}/api/fournisseurs/${fournisseur._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSelectedFournisseur(response.data);
+      setShowDetails(true);
+    } catch (error) {
+      console.error('Erreur lors du chargement des détails:', error);
+      toast.error('Erreur lors du chargement des détails');
+    }
   };
 
   const handleViewStats = (fournisseur) => {
@@ -198,9 +206,37 @@ const Fournisseur = ({ token }) => {
     setShowStats(true);
   };
 
-  const handleViewImages = (bonne) => {
-    setSelectedBonne(bonne);
-    setShowImagesModal(true);
+  const handleViewImages = async (bonne) => {
+    try {
+      // Récupérer les détails complets de la bonne avec les images
+      const response = await axios.get(
+        `${backend_url}/api/fournisseurs/${selectedFournisseur._id}/bonne/${bonne._id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      setSelectedBonne(response.data);
+      setShowImagesModal(true);
+    } catch (error) {
+      console.error('Erreur lors du chargement des images:', error);
+      toast.error('Erreur lors du chargement des images');
+    }
+  };
+
+  const handleViewBonneDetails = async (fournisseurId, bonneId) => {
+    try {
+      const response = await axios.get(
+        `${backend_url}/api/fournisseurs/${fournisseurId}/bonne/${bonneId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      setSelectedBonne(response.data);
+      setShowBonneDetails(true);
+    } catch (error) {
+      console.error('Erreur lors du chargement des détails de la bonne:', error);
+      toast.error('Erreur lors du chargement des détails de la bonne');
+    }
   };
 
   const handleAddImagesToBonne = async (fournisseurId, bonneId, images) => {
@@ -224,7 +260,13 @@ const Fournisseur = ({ token }) => {
       );
       
       toast.success('Images ajoutées avec succès');
-      fetchFournisseurs();
+      
+      // Rafraîchir les détails du fournisseur
+      const response = await axios.get(`${backend_url}/api/fournisseurs/${fournisseurId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSelectedFournisseur(response.data);
+      
       return true;
     } catch (error) {
       console.error('Erreur lors de l\'ajout des images:', error);
@@ -548,6 +590,61 @@ const Fournisseur = ({ token }) => {
         )}
       </div>
 
+      {/* Modal pour afficher les détails d'une bonne spécifique */}
+      {showBonneDetails && selectedBonne && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded shadow-md max-w-4xl w-full max-h-screen overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4">Détails de la Bonne d'Achat</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <h3 className="text-lg font-medium mb-2">Informations</h3>
+                <div className="space-y-2">
+                  <p><strong>Montant:</strong> {selectedBonne.amount} DH</p>
+                  <p><strong>Date:</strong> {formatDate(selectedBonne.date)}</p>
+                  <p><strong>Statut:</strong> {selectedBonne.isPaid ? 'Payée' : 'En attente'}</p>
+                  <p><strong>Montant payé:</strong> {selectedBonne.paidAmount || 0} DH</p>
+                  <p><strong>Reste à payer:</strong> {selectedBonne.amount - (selectedBonne.paidAmount || 0)} DH</p>
+                  {selectedBonne.description && (
+                    <p><strong>Description:</strong> {selectedBonne.description}</p>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-medium mb-2">Images de la Bonne</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedBonne.images && selectedBonne.images.length > 0 ? (
+                    selectedBonne.images.map((image, index) => (
+                      <div key={index} className="border rounded overflow-hidden">
+                        <img 
+                          src={`${backend_url}/uploads/${image}`} 
+                          alt={`Image ${index + 1}`}
+                          className="w-full h-32 object-cover cursor-pointer"
+                          onClick={() => window.open(`${backend_url}/uploads/${image}`, '_blank')}
+                        />
+                        <div className="p-2 bg-gray-100 text-center">
+                          <span className="text-sm">Image {index + 1}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="col-span-2 text-center py-4">Aucune image disponible</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <button 
+              className="bg-gray-500 text-white px-4 py-2 rounded"
+              onClick={() => setShowBonneDetails(false)}
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Modal pour afficher les détails d'un fournisseur */}
       {showDetails && selectedFournisseur && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -568,7 +665,7 @@ const Fournisseur = ({ token }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedFournisseur.bonnes.map((bonne, index) => (
+                  {selectedFournisseur.bonnes && selectedFournisseur.bonnes.map((bonne, index) => (
                     <tr key={index} className={bonne.isPaid ? 'bg-green-100' : 'bg-yellow-100'}>
                       <td className="border px-4 py-2">{formatDate(bonne.date)}</td>
                       <td className="border px-4 py-2">{bonne.amount} DH</td>
@@ -577,13 +674,23 @@ const Fournisseur = ({ token }) => {
                       <td className="border px-4 py-2">{bonne.paidAmount || 0} DH</td>
                       <td className="border px-4 py-2">
                         <div className="flex flex-wrap gap-2">
-                          {/* Bouton pour voir les images */}
+                          {/* Bouton pour voir les détails de la bonne */}
                           <button 
                             className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
-                            onClick={() => handleViewImages(bonne)}
+                            onClick={() => handleViewBonneDetails(selectedFournisseur._id, bonne._id)}
                           >
-                            Voir Images
+                            Voir Bonne
                           </button>
+                          
+                          {/* Bouton pour voir les images */}
+                          {bonne.images && bonne.images.length > 0 && (
+                            <button 
+                              className="bg-purple-500 text-white px-2 py-1 rounded text-sm"
+                              onClick={() => handleViewImages(bonne)}
+                            >
+                              Voir Images ({bonne.images.length})
+                            </button>
+                          )}
                           
                           {/* Bouton pour ajouter des images */}
                           <button 
@@ -598,8 +705,11 @@ const Fournisseur = ({ token }) => {
                                 if (files.length > 0) {
                                   const success = await handleAddImagesToBonne(selectedFournisseur._id, bonne._id, files);
                                   if (success) {
-                                    setShowDetails(false);
-                                    handleViewDetails(selectedFournisseur);
+                                    // Rafraîchir les détails
+                                    const response = await axios.get(`${backend_url}/api/fournisseurs/${selectedFournisseur._id}`, {
+                                      headers: { Authorization: `Bearer ${token}` }
+                                    });
+                                    setSelectedFournisseur(response.data);
                                   }
                                 }
                               };
@@ -643,7 +753,7 @@ const Fournisseur = ({ token }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedFournisseur.paiements.map((paiement, index) => (
+                  {selectedFournisseur.paiements && selectedFournisseur.paiements.map((paiement, index) => (
                     <tr key={index}>
                       <td className="border px-4 py-2">{formatDate(paiement.date)}</td>
                       <td className="border px-4 py-2">{paiement.amount} DH</td>

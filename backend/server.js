@@ -3,6 +3,8 @@ import cors from "cors";
 import "dotenv/config";
 import connectDB from "./config/mongodb.js";
 import connectCloudinary from "./config/cloudinary.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // Routers
 import userRouter from "./routes/userRoute.js";
@@ -10,13 +12,15 @@ import productRouter from "./routes/productRoute.js";
 import cartRouter from "./routes/cartRoute.js";
 import orderRouter from "./routes/orderRoute.js";
 import employerRouter from "./routes/employerRoute.js";
-import commandeRouter from './routes/commandeRoute.js';
-
-// Importez les routes fournisseur avec la syntaxe ES
-import fournisseurRoutes from './routes/fournisseurRoutes.js';
+import commandeRouter from "./routes/commandeRoute.js";
+import fournisseurRoutes from "./routes/fournisseurRoutes.js";
 
 const app = express();
 const port = process.env.PORT || 4000;
+
+// Fix __dirname for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Middleware
 app.use(cors());
@@ -35,13 +39,11 @@ const startServer = async () => {
     app.use("/api/cart", cartRouter);
     app.use("/api/orders", orderRouter);
     app.use("/api/employers", employerRouter);
-    app.use('/api/commandes', commandeRouter);
-    
-    // Routes fournisseur
-    app.use('/api/fournisseurs', fournisseurRoutes);
-    
-    // Servir les fichiers statiques (pour les images)
-    app.use('/uploads', express.static('uploads'));
+    app.use("/api/commandes", commandeRouter);
+    app.use("/api/fournisseurs", fournisseurRoutes);
+
+    // Servir les fichiers statiques (images uploadées)
+    app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
     app.get("/", (req, res) => {
       res.send("✅ API Working...");

@@ -46,51 +46,59 @@ const List = ({ token }) => {
   }, []);
 
   return (
-    <div className="px-4 sm:px-8 sm:mt-14">
+    <div className="px-4 sm:px-8 py-8">
       <h2 className="text-2xl font-bold mb-6">📦 Product List</h2>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-     {list.map((item) => (
-  <div
-    key={item._id}
-    className="grid grid-cols-[1fr_2fr_1fr_1fr_1fr] items-center gap-4 p-3 bg-white rounded-xl shadow hover:shadow-lg transition"
-  >
-    {/* Product Image */}
-    <img
-      src={item.image}
-      alt={item.name}
-      className="w-16 h-16 object-cover rounded-xl border"
-    />
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {list.map((item) => (
+          <div
+            key={item._id}
+            className="flex flex-col bg-white rounded-xl shadow-md hover:shadow-lg transition overflow-hidden"
+          >
+            {/* Product Image */}
+            <div className="h-48 w-full flex items-center justify-center bg-gray-100 p-4">
+              <img
+                src={item.image}
+                alt={item.name}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
 
-    {/* Product Name */}
-    <h5 className="text-sm font-semibold truncate">{item.name}</h5>
+            {/* Product Details */}
+            <div className="p-4 flex flex-col flex-grow">
+              <h5 className="text-sm font-semibold mb-1 line-clamp-2 h-10">
+                {item.name}
+              </h5>
+              <p className="text-xs text-gray-600 mb-2">{item.category}</p>
+              
+              <div className="mt-auto flex items-center justify-between">
+                {/* Price */}
+                <div className="text-sm font-bold text-green-600">
+                  {currency}
+                  {item.price}
+                </div>
 
-    {/* Category */}
-    <p className="text-xs text-gray-600">{item.category}</p>
+                {/* Actions */}
+                <div className="flex items-center gap-2">
+                  {/* Edit Button */}
+                  <button
+                    onClick={() => console.log("Edit product", item._id)}
+                    className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition"
+                  >
+                    <FaEdit className="text-lg" />
+                  </button>
 
-    {/* Price */}
-    <div className="text-sm font-bold text-green-600">
-      {currency}{item.price}
-    </div>
-
-    {/* Actions */}
-    <div className="flex items-center gap-3 justify-end">
-      {/* Edit Button */}
-      <button
-        onClick={() => console.log("Edit product", item._id)}
-        className="px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-      >
-        Edit
-      </button>
-
-      {/* Delete Button */}
-      <TbTrash
-        onClick={() => removeProduct(item._id)}
-        className="cursor-pointer text-red-500 text-lg hover:text-red-700 transition"
-      />
-    </div>
-  </div>
-))}
-
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => removeProduct(item._id)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-full transition"
+                  >
+                    <TbTrash className="text-lg" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
