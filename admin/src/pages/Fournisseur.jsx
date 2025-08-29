@@ -250,6 +250,7 @@ const Fournisseur = ({ token }) => {
       
       await axios.post(
         `${backend_url}/api/fournisseurs/${fournisseurId}/bonne/${bonneId}/images`,
+        
         formData,
         {
           headers: {

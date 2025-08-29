@@ -1,34 +1,97 @@
 import React, { useEffect, useState, useContext } from "react";
 import { ShopContext } from "../context/ShopContext";
 import Title from "../components/Title";
-import { FaTrash, FaEdit, FaShoppingCart } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { FaShoppingCart, FaSync, FaCheckCircle, FaClock, FaTimesCircle } from "react-icons/fa";
 
 const Achat = () => {
-  const { currency, setCartItems } = useContext(ShopContext);
+  const { currency, backendUrl } = useContext(ShopContext);
   const [purchases, setPurchases] = useState([]);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const navigate = useNavigate();
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("purchases")) || [];
-    setPurchases(stored);
+    loadPurchases();
   }, []);
 
-  // ✅ Calculate total of all purchases
+  // Load purchases from localStorage and sync with admin
+  const loadPurchases = () => {
+    const stored = JSON.parse(localStorage.getItem("purchases")) || [];
+    setPurchases(stored);
+  };
+
+  // Sync purchases with admin orders
+  const syncWithAdmin = async () => {
+    setSyncing(true);
+    try {
+      // Get all purchase IDs
+      const purchaseIds = purchases.map(p => p._id).filter(id => id);
+      
+      if (purchaseIds.length === 0) {
+        setSyncing(false);
+        return;
+      }
+      
+      // Check which orders still exist in admin
+      const response = await fetch(`${backendUrl}/api/orders/check-orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderIds: purchaseIds })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const existingOrderIds = data.existingOrders || [];
+        
+        // Filter out purchases that don't exist in admin anymore
+        const updatedPurchases = purchases.filter(p => 
+          !p._id || existingOrderIds.includes(p._id)
+        );
+        
+        setPurchases(updatedPurchases);
+        localStorage.setItem("purchases", JSON.stringify(updatedPurchases));
+      }
+    } catch (error) {
+      console.error("Error syncing with admin:", error);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Calculate total of all purchases
   const totalAllPurchases = purchases.reduce((sum, order) => sum + (order.amount || 0), 0);
 
   // Function to get status styling
   const getStatusStyle = (status) => {
     switch (status) {
       case "completed":
-        return { bg: "bg-green-100", text: "text-green-800", label: "مكتمل" };
+        return { 
+          bg: "bg-green-100", 
+          text: "text-green-800", 
+          label: "مكتمل",
+          icon: <FaCheckCircle className="text-green-500" />
+        };
       case "pending":
-        return { bg: "bg-yellow-100", text: "text-yellow-800", label: "قيد الانتظار" };
+        return { 
+          bg: "bg-yellow-100", 
+          text: "text-yellow-800", 
+          label: "قيد الانتظار",
+          icon: <FaClock className="text-yellow-500" />
+        };
       case "cancelled":
-        return { bg: "bg-red-100", text: "text-red-800", label: "ملغي" };
+        return { 
+          bg: "bg-red-100", 
+          text: "text-red-800", 
+          label: "ملغي",
+          icon: <FaTimesCircle className="text-red-500" />
+        };
       default:
-        return { bg: "bg-blue-100", text: "text-blue-800", label: "تم الشراء" };
+        return { 
+          bg: "bg-blue-100", 
+          text: "text-blue-800", 
+          label: "تم الشراء",
+          icon: <FaCheckCircle className="text-blue-500" />
+        };
     }
   };
 
@@ -46,126 +109,100 @@ const Achat = () => {
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   };
 
-  // Function to delete a purchase
-  const deletePurchase = (index) => {
-    const updatedPurchases = purchases.filter((_, i) => i !== index);
-    setPurchases(updatedPurchases);
-    localStorage.setItem("purchases", JSON.stringify(updatedPurchases));
-    setShowDeleteConfirm(null);
-  };
-
-  // Function to delete all purchases
-  const deleteAllPurchases = () => {
-    setPurchases([]);
-    localStorage.removeItem("purchases");
-    setShowDeleteConfirm(null);
-  };
-
-  // Function to modify a purchase (redirect to cart with items)
-  const modifyPurchase = (order) => {
-    // Prepare items for the cart
-    const cartItems = order.items.map(item => ({
-      id: item.id || item._id,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      image: item.image
-    }));
-    
-    // Set items to cart context
-    setCartItems(cartItems);
-    
-    // Redirect to cart page
-    navigate("/cart");
-  };
-
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="max-padd-container py-10">
-        <Title title1={"قائمة"} title2={"المشتريات"} titleStyles={"pb-6"} />
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteConfirm !== null && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl p-6 max-w-md w-full">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">
-                {showDeleteConfirm === "all" 
-                  ? "هل تريد حذف جميع المشتريات؟" 
-                  : "هل تريد حذف هذه العملية؟"}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {showDeleteConfirm === "all" 
-                  ? "سيتم حذف جميع سجل المشتريات ولا يمكن التراجع عن هذا الإجراء." 
-                  : "سيتم حذف هذه العملية من سجل المشتريات ولا يمكن التراجع عن هذا الإجراء."}
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  إلغاء
-                </button>
-                <button
-                  onClick={() => showDeleteConfirm === "all" 
-                    ? deleteAllPurchases() 
-                    : deletePurchase(showDeleteConfirm)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  تأكيد الحذف
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+    <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">سجل المشتريات</h1>
+          <p className="text-gray-600">استعرض جميع عمليات الشراء السابقة</p>
+        </div>
 
         {purchases.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-            <FaShoppingCart className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500 text-lg">لا توجد مشتريات بعد</p>
-            <p className="text-gray-400 mt-2">سيظهر تاريخ مشترياتك هنا عند إتمام أول عملية شراء</p>
+          <div className="bg-white rounded-xl shadow-sm p-8 text-center max-w-md mx-auto">
+            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <FaShoppingCart className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">لا توجد مشتريات بعد</h3>
+            <p className="text-gray-500">سيظهر تاريخ مشترياتك هنا عند إتمام أول عملية شراء</p>
           </div>
         ) : (
           <>
-            {/* Action Buttons */}
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-medium text-gray-700">
-                عدد العمليات: {purchases.length}
-              </h3>
+            {/* Header with Stats and Sync Button */}
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="flex-1">
+                <h3 className="text-lg font-medium text-gray-700 mb-2">
+                  إحصائيات المشتريات
+                </h3>
+                <div className="flex flex-wrap gap-4">
+                  <div className="bg-blue-50 px-4 py-2 rounded-lg">
+                    <span className="text-sm text-gray-600">عدد العمليات:</span>
+                    <span className="block text-lg font-bold text-blue-600">{purchases.length}</span>
+                  </div>
+                  <div className="bg-green-50 px-4 py-2 rounded-lg">
+                    <span className="text-sm text-gray-600">إجمالي المشتريات:</span>
+                    <span className="block text-lg font-bold text-green-600">
+                      {currency} {totalAllPurchases.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
               <button
-                onClick={() => setShowDeleteConfirm("all")}
-                className="flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors"
+                onClick={syncWithAdmin}
+                disabled={syncing}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  syncing 
+                    ? 'bg-gray-300 text-gray-500' 
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                }`}
               >
-                <FaTrash /> حذف الكل
+                {syncing ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    جاري المزامنة...
+                  </>
+                ) : (
+                  <>
+                    <FaSync />
+                    مزامنة مع الإدارة
+                  </>
+                )}
               </button>
             </div>
 
             {/* Purchase Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {purchases.map((order, index) => {
                 const statusStyle = getStatusStyle(order.status);
                 return (
-                  <div key={order._id || index} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100 overflow-hidden flex flex-col">
+                  <div key={order._id || index} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 overflow-hidden flex flex-col">
                     {/* Card Header */}
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-100">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>
-                          {statusStyle.label}
-                        </span>
-                        <span className="text-xs text-gray-500">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 border-b border-gray-100">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-2">
+                          {statusStyle.icon}
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>
+                            {statusStyle.label}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-md shadow-sm">
                           #{order._id?.slice(-6).toUpperCase() || index + 1}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 font-mono">
+                      <p className="text-xs text-gray-500 font-mono dir-ltr text-left">
                         {formatDateWestern(order.createdAt)}
                       </p>
                     </div>
 
                     {/* Items List */}
-                    <div className="p-4 flex-grow">
-                      <h4 className="font-medium text-gray-700 mb-2 text-sm">المنتجات المشتراة:</h4>
+                    <div className="p-5 flex-grow">
+                      <h4 className="font-medium text-gray-700 mb-3 text-sm border-b pb-2">المنتجات المشتراة:</h4>
                       <div className="space-y-3 max-h-40 overflow-y-auto">
                         {order.items.map((item, i) => (
-                          <div key={i} className="text-sm py-1 border-b border-gray-100 last:border-b-0">
+                          <div key={i} className="text-sm py-2 border-b border-gray-100 last:border-b-0">
                             <div className="flex justify-between items-start mb-1">
                               <span className="font-medium text-gray-700 truncate max-w-[60%]">{item.name}</span>
                               <span className="text-gray-500 flex-shrink-0">
@@ -181,28 +218,13 @@ const Achat = () => {
                       </div>
                     </div>
 
-                    {/* Order Total and Actions */}
-                    <div className="p-4 bg-gray-50 border-t border-gray-100">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-medium text-gray-700">المجموع:</span>
+                    {/* Order Total */}
+                    <div className="p-5 bg-gray-50 border-t border-gray-100">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-700">المجموع الكلي:</span>
                         <span className="text-lg font-bold text-indigo-600">
                           {currency} {order.amount.toFixed(2)}
                         </span>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => modifyPurchase(order)}
-                          className="flex-1 flex items-center justify-center gap-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                          <FaEdit className="text-sm" /> تعديل
-                        </button>
-                        <button
-                          onClick={() => setShowDeleteConfirm(index)}
-                          className="flex items-center justify-center w-10 h-10 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-                        >
-                          <FaTrash />
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -213,7 +235,7 @@ const Achat = () => {
             {/* Total of all purchases */}
             <div className="bg-white p-6 rounded-xl shadow-sm mt-10 border border-gray-200 flex justify-between items-center">
               <div className="text-lg font-bold text-gray-700">
-                إجمالي جميع المشتريات:
+                إجمالي قيمة جميع المشتريات:
               </div>
               <div className="text-xl font-bold text-indigo-600">
                 {currency} {totalAllPurchases.toFixed(2)}
