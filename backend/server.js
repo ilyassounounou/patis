@@ -5,6 +5,7 @@ import connectDB from "./config/mongodb.js";
 import connectCloudinary from "./config/cloudinary.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import multer from "multer"; // Import multer for error handling
 
 // Routers
 import userRouter from "./routes/userRoute.js";
@@ -27,6 +28,28 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Error handling middleware for multer
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'Fichier trop volumineux. Maximum 5MB autorisé.' });
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ message: 'Trop de fichiers envoyés.' });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({ message: 'Champ de fichier inattendu.' });
+    }
+  }
+  
+  // Handle file filter errors
+  if (err.message === 'Seules les images sont autorisées!') {
+    return res.status(400).json({ message: err.message });
+  }
+  
+  next(err);
+};
+
 // Connect to DB and Cloudinary before starting the server
 const startServer = async () => {
   try {
@@ -44,6 +67,15 @@ const startServer = async () => {
 
     // Servir les fichiers statiques (images uploadées)
     app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+    // Global error handler
+    app.use((err, req, res, next) => {
+      console.error('Error:', err);
+      res.status(500).json({ 
+        message: 'Erreur interne du serveur',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    });
 
     app.get("/", (req, res) => {
       res.send("✅ API Working...");

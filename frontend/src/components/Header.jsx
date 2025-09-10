@@ -1,13 +1,13 @@
 import React, { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
-import { FaBars, FaBarsStaggered } from "react-icons/fa6";
+import { FaBars, FaTimes } from "react-icons/fa";
 import { ShopContext } from "../context/ShopContext";
 
 const Header = () => {
   const [menuOpened, setMenuOpened] = useState(false);
   const navigate = useNavigate();
-  const { getCartCount } = useContext(ShopContext); // Changed from getCartTotalCount to getCartCount
+  const { getCartCount } = useContext(ShopContext);
 
   const toggleMenu = () => setMenuOpened((prev) => !prev);
 
@@ -17,52 +17,130 @@ const Header = () => {
   };
 
   return (
-    <header className="max-padd-container w-full mb-2">
-      <div className="flexBetween py-3">
-        {/* LOGO */}
-        <Link to={"/"} className="flex flex-1 bold-24 xl:bold-28">
-          Shopanza
-        </Link>
+    <>
+      <style>{`
+        .header {
+          width: 100%;
+          background: #fff;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          position: relative;
+          z-index: 100;
+        }
 
-        {/* NAVBAR */}
-        <div className="flex-1">
-          <Navbar
-            containerStyles={`${
-              menuOpened
-                ? "flex items-start flex-col gap-y-8 fixed top-16 right-6 p-5 bg-white rounded-xl shadow-md w-52 ring-1 ring-slate-900/5 z-50"
-                : "hidden xl:flex gap-x-5 xl:gap-x-7 medium-15 bg-primary ring-1 ring-slate-900/5 rounded-full p-1"
-            }`}
-            onClick={() => setMenuOpened(false)}
-          />
-        </div>
+        .header-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 20px;
+        }
 
-        {/* BUTTONS */}
-        <div className="flex-1 flex items-center justify-end gap-x-2 xs:gap-x-8">
-          {/* MENU TOGGLE */}
-          {menuOpened ? (
-            <FaBarsStaggered
-              onClick={toggleMenu}
-              className="xl:hidden cursor-pointer text-xl"
-            />
-          ) : (
-            <FaBars
-              onClick={toggleMenu}
-              className="xl:hidden cursor-pointer text-xl"
-            />
-          )}
+        .logo {
+          font-size: 22px;
+          font-weight: bold;
+          color: #ff9800;
+          text-decoration: none;
+        }
 
-          {/* CART */}
-          <Link to={"/cart"} className="flex relative">
-            <div className="ring-1 ring-slate-900 rounded-full px-3 bold-18">
-              Cart
-              <span className="bg-secondary text-white text-[12px] font-semibold absolute -top-3.5 -right-2 flexCenter w-4 h-4 rounded-full shadow-md">
-                {getCartCount()} {/* Changed from getCartTotalCount() to getCartCount() */}
-              </span>
-            </div>
+        .menu {
+          display: none;
+        }
+
+        .menu.open {
+          display: flex;
+          flex-direction: column;
+          position: fixed;
+          top: 0;
+          right: 0;
+          width: 220px;
+          height: 100vh;
+          background: #fff;
+          padding: 20px;
+          box-shadow: -2px 0 6px rgba(0,0,0,0.1);
+        }
+
+        @media (min-width: 1024px) {
+          .menu {
+            display: flex !important;
+            flex-direction: row;
+            position: static;
+            height: auto;
+            width: auto;
+            box-shadow: none;
+            padding: 0;
+          }
+        }
+
+        .cart {
+          position: relative;
+          padding: 6px 14px;
+          border: 1px solid #ddd;
+          border-radius: 20px;
+          font-weight: 500;
+          cursor: pointer;
+          font-size: 14px;
+          text-decoration: none;
+          color: #333;
+        }
+
+        .cart-badge {
+          position: absolute;
+          top: -6px;
+          right: -6px;
+          background: #ff5722;
+          color: #fff;
+          font-size: 12px;
+          font-weight: bold;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .menu-btn {
+          font-size: 20px;
+          cursor: pointer;
+          color: #333;
+          background: none;
+          border: none;
+        }
+
+        @media (min-width: 1024px) {
+          .menu-btn {
+            display: none;
+          }
+        }
+      `}</style>
+
+      <header className="header">
+        <div className="header-container">
+          {/* LOGO */}
+          <Link to={"collection"} className="logo">
+            L'ami Doree
           </Link>
+
+          {/* NAVBAR */}
+          <div className={`menu ${menuOpened ? "open" : ""}`}>
+            <Navbar onClick={() => setMenuOpened(false)} />
+          </div>
+
+          {/* CART + MENU BUTTON */}
+          <div className="flex items-center gap-4">
+            <Link to={"/cart"} className="cart">
+              Cart
+              <span className="cart-badge">{getCartCount()}</span>
+            </Link>
+
+            <button onClick={toggleMenu} className="menu-btn">
+              {menuOpened ? <FaTimes /> : <FaBars />}
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 };
 

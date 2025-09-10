@@ -12,13 +12,15 @@ const Collection = () => {
   const itemsPerPage = 10;
   const [selectedProducts, setSelectedProducts] = useState({});
   const [added, setAdded] = useState(false);
+  
   // الحلويات التقليدية المغربية
   const [traditionalSweets, setTraditionalSweets] = useState([
-    { id: 1, name: "حلوة السابلية", basePrice: 90, selectedWeight: "1kg", quantity: 1 },
-    { id: 2, name: "حلوة اللوز", basePrice: 150, selectedWeight: "1kg", quantity: 1 },
-    { id: 3, name: "الكعبة", basePrice: 170, selectedWeight: "1kg", quantity: 1 },
-    { id: 4, name: "فقاص برستيج", basePrice: 170, selectedWeight: "1kg", quantity: 1 }
+    { id: 1, name: "حلوة السابلية", basePrice: 90 },
+    { id: 2, name: "حلوة اللوز", basePrice: 150 },
+    { id: 3, name: "الكعبة", basePrice: 170 },
+    { id: 4, name: "فقاص برستيج", basePrice: 170 }
   ]);
+  
   const [selectedTraditionalSweets, setSelectedTraditionalSweets] = useState({});
 
   useEffect(() => {
@@ -38,6 +40,31 @@ const Collection = () => {
     localStorage.setItem("selectedTraditionalSweets", JSON.stringify(selectedTraditionalSweets));
   }, [selectedProducts, selectedTraditionalSweets]);
 
+  // دالة لحساب السعر من الوزن بالجرام
+  const calculateSweetPrice = (basePrice, weightInput) => {
+    if (!weightInput) return 0;
+    
+    // استخراج الرقم من المدخل (إزالة أي أحرف غير رقمية)
+    const weightValue = parseFloat(weightInput.replace(/[^\d.]/g, ''));
+    
+    if (isNaN(weightValue) || weightValue <= 0) return 0;
+    
+    // حساب السعر بناءً على الوزن بالجرام
+    return (weightValue / 1000) * basePrice;
+  };
+
+  // تحديث اختيار الحلوى التقليدية
+  const updateTraditionalSweetSelection = (sweetId, weightInput, quantity) => {
+    setSelectedTraditionalSweets(prev => ({
+      ...prev,
+      [sweetId]: { 
+        selectedWeight: weightInput, 
+        quantity: parseInt(quantity) || 1 
+      }
+    }));
+  };
+
+  // باقي الدوال كما هي
   const toggleFilter = (value, setState) => {
     setState((prev) =>
       prev.includes(value)
@@ -102,9 +129,10 @@ const Collection = () => {
       const sweet = traditionalSweets.find(s => s.id.toString() === sweetId);
       if (sweet && !cartItems[`traditional_${sweetId}`]) {
         // إضافة الحلوى التقليدية إلى السلة
+        const price = calculateSweetPrice(sweet.basePrice, details.selectedWeight || "0");
         addToCart(`traditional_${sweetId}`, details.quantity, {
-          name: sweet.name,
-          price: calculateSweetPrice(sweet.basePrice, details.selectedWeight),
+          name: `${sweet.name} (${details.selectedWeight})`,
+          price: price,
           weight: details.selectedWeight
         });
       }
@@ -122,34 +150,13 @@ const Collection = () => {
     const traditionalSweetsTotal = Object.entries(selectedTraditionalSweets).reduce((total, [sweetId, details]) => {
       const sweet = traditionalSweets.find(s => s.id.toString() === sweetId);
       if (sweet) {
-        return total + (calculateSweetPrice(sweet.basePrice, details.selectedWeight) * details.quantity);
+        const price = calculateSweetPrice(sweet.basePrice, details.selectedWeight || "0");
+        return total + (price * details.quantity);
       }
       return total;
     }, 0);
     
     return regularProductsTotal + traditionalSweetsTotal;
-  };
-
-  // حساب سعر الحلوى بناءً على الوزن المختار
-  const calculateSweetPrice = (basePrice, weight) => {
-    const weightFactors = {
-      "500g": 0.5,
-      "700g": 0.7,
-      "1kg": 1,
-      "1.5kg": 1.5,
-      "2kg": 2,
-      "2.5kg": 2.5
-    };
-    
-    return basePrice * (weightFactors[weight] || 1);
-  };
-
-  // تحديث اختيار الحلوى التقليدية
-  const updateTraditionalSweetSelection = (sweetId, weight, quantity) => {
-    setSelectedTraditionalSweets(prev => ({
-      ...prev,
-      [sweetId]: { selectedWeight: weight, quantity: parseInt(quantity) || 1 }
-    }));
   };
 
   const totalAmount = getTotalAmount();
@@ -199,56 +206,115 @@ const Collection = () => {
         <section className="w-full lg:w-3/4">
           {/* قسم الحلويات التقليدية المغربية */}
           <div className="mb-10 bg-white rounded-xl shadow p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">الحلويات المغربية التقليدية</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+              الحلويات المغربية التقليدية
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {traditionalSweets.map(sweet => (
-                <div key={sweet.id} className="border border-gray-200 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">{sweet.name}</h3>
-                  <p className="text-gray-600 mb-3">السعر الأساسي: {sweet.basePrice} {currency} للكيلوغرام</p>
-                  
-                  <div className="mb-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">اختر الوزن:</label>
-                    <select
-                      value={selectedTraditionalSweets[sweet.id]?.selectedWeight || "1kg"}
-                      onChange={(e) => updateTraditionalSweetSelection(sweet.id, e.target.value, selectedTraditionalSweets[sweet.id]?.quantity || 1)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                    >
-                      <option value="500g">500 جرام</option>
-                      <option value="700g">700 جرام</option>
-                      <option value="1kg">1 كيلوغرام</option>
-                      <option value="1.5kg">1.5 كيلوغرام</option>
-                      <option value="2kg">2 كيلوغرام</option>
-                      <option value="2.5kg">2.5 كيلوغرام</option>
-                    </select>
+              {traditionalSweets.map((sweet) => {
+                const selectedSweet = selectedTraditionalSweets[sweet.id] || {
+                  selectedWeight: "",
+                  quantity: 1
+                };
+                
+                const price = calculateSweetPrice(sweet.basePrice, selectedSweet.selectedWeight || "0");
+                const totalPrice = price * selectedSweet.quantity;
+                
+                return (
+                  <div key={sweet.id} className="border border-gray-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      {sweet.name}
+                    </h3>
+                    <p className="text-gray-600 mb-3">
+                      السعر الأساسي: {sweet.basePrice} {currency} للكيلوغرام
+                    </p>
+
+                    {/* إدخال الوزن الحر */}
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        أدخل الوزن (بالجرام):
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="مثال: 500 لـ نصف كيلو"
+                        value={selectedSweet.selectedWeight}
+                        onChange={(e) => {
+                          // السماح فقط بالأرقام والنقاط
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          updateTraditionalSweetSelection(
+                            sweet.id,
+                            value,
+                            selectedSweet.quantity
+                          );
+                        }}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        أدخل الوزن بالجرام (مثال: 500 لنصف كيلو، 1000 لكيلو)
+                      </p>
+                    </div>
+
+                    {/* إدخال الكمية */}
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        الكمية:
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={selectedSweet.quantity}
+                        onChange={(e) =>
+                          updateTraditionalSweetSelection(
+                            sweet.id,
+                            selectedSweet.selectedWeight,
+                            e.target.value
+                          )
+                        }
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      />
+                    </div>
+
+                    {/* المجموع */}
+                    <div className="flex justify-between items-center mt-4">
+                      <span className="font-semibold text-lg text-blue-600">
+                        الإجمالي: {totalPrice.toFixed(2)} {currency}
+                      </span>
+                      <button
+                        onClick={() => {
+                          // تأكيد الاختيار
+                          updateTraditionalSweetSelection(
+                            sweet.id,
+                            selectedSweet.selectedWeight,
+                            selectedSweet.quantity
+                          );
+                          
+                          // عرض رسالة تأكيد
+                          alert(`تم اختيار ${selectedSweet.quantity} × ${sweet.name} بوزن ${selectedSweet.selectedWeight} جرام`);
+                        }}
+                        className="bg-blue-100 text-blue-600 px-3 py-1 rounded text-sm font-medium"
+                      >
+                        تأكيد الاختيار
+                      </button>
+                    </div>
+                    
+                    {/* أمثلة توضيحية */}
+                    <div className="mt-3 text-xs text-gray-500">
+                      <p>أمثلة:</p>
+                      <ul className="list-disc mr-4">
+                        <li>244 جرام ≈ 22 {currency}</li>
+                        <li>333 جرام ≈ 30 {currency}</li>
+                        <li>500 جرام = 45 {currency}</li>
+                        <li>1000 جرام = 90 {currency}</li>
+                      </ul>
+                    </div>
                   </div>
-                  
-                  <div className="mb-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">الكمية:</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={selectedTraditionalSweets[sweet.id]?.quantity || 1}
-                      onChange={(e) => updateTraditionalSweetSelection(sweet.id, selectedTraditionalSweets[sweet.id]?.selectedWeight || "1kg", e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                    />
-                  </div>
-                  
-                  <div className="flex justify-between items-center mt-4">
-                    <span className="font-semibold text-lg text-blue-600">
-                      الإجمالي: {calculateSweetPrice(sweet.basePrice, selectedTraditionalSweets[sweet.id]?.selectedWeight || "1kg") * (selectedTraditionalSweets[sweet.id]?.quantity || 1)} {currency}
-                    </span>
-                    <button
-                      onClick={() => updateTraditionalSweetSelection(sweet.id, selectedTraditionalSweets[sweet.id]?.selectedWeight || "1kg", selectedTraditionalSweets[sweet.id]?.quantity || 1)}
-                      className="bg-blue-100 text-blue-600 px-3 py-1 rounded text-sm font-medium"
-                    >
-                      تأكيد الاختيار
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
+          {/* باقي المحتوى */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
             {getPaginatedProducts().length > 0 ? (
               getPaginatedProducts().map((product) => (

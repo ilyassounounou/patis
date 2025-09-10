@@ -250,7 +250,6 @@ const Fournisseur = ({ token }) => {
       
       await axios.post(
         `${backend_url}/api/fournisseurs/${fournisseurId}/bonne/${bonneId}/images`,
-        
         formData,
         {
           headers: {
@@ -309,6 +308,14 @@ const Fournisseur = ({ token }) => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Fonction pour obtenir l'URL complète de l'image
+  const getImageUrl = (image) => {
+    if (typeof image === 'object' && image.url) {
+      return image.url;
+    }
+    return `${backend_url}/uploads/${image}`;
   };
 
   // Fonction pour ouvrir le modal d'ajout de bonne
@@ -616,19 +623,22 @@ const Fournisseur = ({ token }) => {
                 <h3 className="text-lg font-medium mb-2">Images de la Bonne</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {selectedBonne.images && selectedBonne.images.length > 0 ? (
-                    selectedBonne.images.map((image, index) => (
-                      <div key={index} className="border rounded overflow-hidden">
-                        <img 
-                          src={`${backend_url}/uploads/${image}`} 
-                          alt={`Image ${index + 1}`}
-                          className="w-full h-32 object-cover cursor-pointer"
-                          onClick={() => window.open(`${backend_url}/uploads/${image}`, '_blank')}
-                        />
-                        <div className="p-2 bg-gray-100 text-center">
-                          <span className="text-sm">Image {index + 1}</span>
+                    selectedBonne.images.map((image, index) => {
+                      const imageUrl = getImageUrl(image);
+                      return (
+                        <div key={index} className="border rounded overflow-hidden">
+                          <img 
+                            src={imageUrl}
+                            alt={`Image ${index + 1}`}
+                            className="w-full h-32 object-cover cursor-pointer"
+                            onClick={() => window.open(imageUrl, '_blank')}
+                          />
+                          <div className="p-2 bg-gray-100 text-center">
+                            <span className="text-sm">Image {index + 1}</span>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <p className="col-span-2 text-center py-4">Aucune image disponible</p>
                   )}
@@ -784,19 +794,22 @@ const Fournisseur = ({ token }) => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               {selectedBonne.images && selectedBonne.images.length > 0 ? (
-                selectedBonne.images.map((image, index) => (
-                  <div key={index} className="border rounded overflow-hidden">
-                    <img 
-                      src={`${backend_url}/uploads/${image}`} 
-                      alt={`Image ${index + 1}`}
-                      className="w-full h-48 object-cover cursor-pointer"
-                      onClick={() => window.open(`${backend_url}/uploads/${image}`, '_blank')}
-                    />
-                    <div className="p-2 bg-gray-100 text-center">
-                      <span className="text-sm">Image {index + 1}</span>
+                selectedBonne.images.map((image, index) => {
+                  const imageUrl = getImageUrl(image);
+                  return (
+                    <div key={index} className="border rounded overflow-hidden">
+                      <img 
+                        src={imageUrl}
+                        alt={`Image ${index + 1}`}
+                        className="w-full h-48 object-cover cursor-pointer"
+                        onClick={() => window.open(imageUrl, '_blank')}
+                      />
+                      <div className="p-2 bg-gray-100 text-center">
+                        <span className="text-sm">Image {index + 1}</span>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <p className="col-span-full text-center py-4">Aucune image disponible</p>
               )}

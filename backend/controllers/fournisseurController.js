@@ -51,7 +51,24 @@ export const createFournisseur = async (req, res) => {
 export const getAllFournisseurs = async (req, res) => {
   try {
     const fournisseurs = await Fournisseur.find().sort({ createdAt: -1 });
-    res.json(fournisseurs);
+    
+    // Add full image URLs to each bonne
+    const fournisseursWithImageUrls = fournisseurs.map(fournisseur => {
+      const bonnesWithUrls = fournisseur.bonnes.map(bonne => ({
+        ...bonne.toObject(),
+        images: bonne.images.map(image => ({
+          filename: image,
+          url: `${req.protocol}://${req.get('host')}/uploads/${image}`
+        }))
+      }));
+      
+      return {
+        ...fournisseur.toObject(),
+        bonnes: bonnesWithUrls
+      };
+    });
+    
+    res.json(fournisseursWithImageUrls);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -64,7 +81,22 @@ export const getFournisseurById = async (req, res) => {
     if (!fournisseur) {
       return res.status(404).json({ message: 'Fournisseur non trouvé' });
     }
-    res.json(fournisseur);
+    
+    // Add full image URLs to each bonne
+    const bonnesWithUrls = fournisseur.bonnes.map(bonne => ({
+      ...bonne.toObject(),
+      images: bonne.images.map(image => ({
+        filename: image,
+        url: `${req.protocol}://${req.get('host')}/uploads/${image}`
+      }))
+    }));
+    
+    const fournisseurWithUrls = {
+      ...fournisseur.toObject(),
+      bonnes: bonnesWithUrls
+    };
+    
+    res.json(fournisseurWithUrls);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -108,7 +140,22 @@ export const updateFournisseur = async (req, res) => {
     }
 
     await fournisseur.save();
-    res.json(fournisseur);
+    
+    // Return with image URLs
+    const bonnesWithUrls = fournisseur.bonnes.map(bonne => ({
+      ...bonne.toObject(),
+      images: bonne.images.map(image => ({
+        filename: image,
+        url: `${req.protocol}://${req.get('host')}/uploads/${image}`
+      }))
+    }));
+    
+    const fournisseurWithUrls = {
+      ...fournisseur.toObject(),
+      bonnes: bonnesWithUrls
+    };
+    
+    res.json(fournisseurWithUrls);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -195,7 +242,22 @@ export const addBonne = async (req, res) => {
     fournisseur.bonnes.push(nouvelleBonne);
 
     await fournisseur.save();
-    res.json(fournisseur);
+    
+    // Return with image URLs
+    const bonnesWithUrls = fournisseur.bonnes.map(bonne => ({
+      ...bonne.toObject(),
+      images: bonne.images.map(image => ({
+        filename: image,
+        url: `${req.protocol}://${req.get('host')}/uploads/${image}`
+      }))
+    }));
+    
+    const fournisseurWithUrls = {
+      ...fournisseur.toObject(),
+      bonnes: bonnesWithUrls
+    };
+    
+    res.json(fournisseurWithUrls);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -230,7 +292,22 @@ export const addImagesToBonne = async (req, res) => {
     }
 
     await fournisseur.save();
-    res.json(fournisseur);
+    
+    // Return with image URLs
+    const bonnesWithUrls = fournisseur.bonnes.map(bonne => ({
+      ...bonne.toObject(),
+      images: bonne.images.map(image => ({
+        filename: image,
+        url: `${req.protocol}://${req.get('host')}/uploads/${image}`
+      }))
+    }));
+    
+    const fournisseurWithUrls = {
+      ...fournisseur.toObject(),
+      bonnes: bonnesWithUrls
+    };
+    
+    res.json(fournisseurWithUrls);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -288,7 +365,22 @@ export const addPaiement = async (req, res) => {
     });
 
     await fournisseur.save();
-    res.json(fournisseur);
+    
+    // Return with image URLs
+    const bonnesWithUrls = fournisseur.bonnes.map(bonne => ({
+      ...bonne.toObject(),
+      images: bonne.images.map(image => ({
+        filename: image,
+        url: `${req.protocol}://${req.get('host')}/uploads/${image}`
+      }))
+    }));
+    
+    const fournisseurWithUrls = {
+      ...fournisseur.toObject(),
+      bonnes: bonnesWithUrls
+    };
+    
+    res.json(fournisseurWithUrls);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -309,8 +401,14 @@ export const getBonneImages = async (req, res) => {
       return res.status(404).json({ message: 'Bonne non trouvée' });
     }
 
+    // Return images with full URLs
+    const imagesWithUrls = bonne.images.map(image => ({
+      filename: image,
+      url: `${req.protocol}://${req.get('host')}/uploads/${image}`
+    }));
+
     res.json({ 
-      images: bonne.images || [],
+      images: imagesWithUrls,
       description: bonne.description || ''
     });
   } catch (error) {
@@ -364,6 +462,12 @@ export const getBonneDetails = async (req, res) => {
       return res.status(404).json({ message: 'Bonne non trouvée' });
     }
 
+    // Generate full URLs for images
+    const imagesWithUrls = bonne.images.map(image => ({
+      filename: image,
+      url: `${req.protocol}://${req.get('host')}/uploads/${image}`
+    }));
+
     res.json({
       _id: bonne._id,
       amount: bonne.amount,
@@ -371,7 +475,7 @@ export const getBonneDetails = async (req, res) => {
       date: bonne.date,
       isPaid: bonne.isPaid || false,
       paidAmount: bonne.paidAmount || 0,
-      images: bonne.images || []
+      images: imagesWithUrls // Return images with URLs
     });
   } catch (error) {
     res.status(400).json({ message: error.message });

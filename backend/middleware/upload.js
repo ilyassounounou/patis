@@ -18,9 +18,9 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
-    // Générer un nom de fichier unique avec le champ name pour mieux identifier
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
+    // Utiliser le même format de nom de fichier que dans le contrôleur
+    const imageName = `bonne_${Date.now()}_${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
+    cb(null, imageName);
   }
 });
 
