@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 
 // Components
@@ -15,7 +15,6 @@ import SettingsPage from "./pages/SettingsPage";
 import Achat from "./pages/achat";
 import Employer from "./pages/employer";
 import Commandes from './pages/Commandes';
-
 
 // Theme logic
 import { useThemeStore } from './store/useThemeStore';
@@ -37,6 +36,9 @@ const App = () => {
       <ToastContainer />
       <Header />
       <Routes>
+        {/* ✅ Default route → Collection */}
+        <Route path="/" element={<Collection />} />
+
         <Route path="/collection" element={<Collection />} />
         <Route path="/product/:productId" element={<Product />} />
         <Route path="/cart" element={<Cart />} />
@@ -46,7 +48,9 @@ const App = () => {
         <Route path="/achat" element={<Achat />} />
         <Route path="/employer" element={<Employer />} /> 
         <Route path="/commandes" element={<Commandes />} />
-       
+
+        {/* ✅ Catch-all redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </main>
   );

@@ -7,7 +7,7 @@ const Navbar = ({ containerStyles = "", onClick }) => {
     { path: "/achat", title: "المشتريات" },
     { path: "/commandes", title: "الطلبات" },
     { path: "/employer", title: "الموظفين" },
-    { path: "/fournisseurs", title: "الموردين" },
+    { path: "/fourni", title: "الموردين" }, // Changé de "/fournisseurs" à "/fourni"
   ];
 
   return (

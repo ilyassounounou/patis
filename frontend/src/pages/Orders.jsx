@@ -1,12 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
 import { ShopContext } from "../context/ShopContext";
 import axios from "axios";
-import Title from "../components/Title";
-import { FaPrint, FaShoppingCart, FaCheckCircle, FaClock, FaTimesCircle } from "react-icons/fa";
+import { FaPrint, FaShoppingCart, FaCheckCircle, FaClock, FaTimesCircle, FaTrash } from "react-icons/fa";
 import { useLocation } from "react-router-dom";
 
 const Orders = () => {
-  const { backendUrl, token, currency, addToCart } = useContext(ShopContext);
+  const { backendUrl, token, currency, addToCart, clearCart, cartItems } = useContext(ShopContext);
   const [orderData, setOrderData] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -165,28 +164,52 @@ const Orders = () => {
     printToThermalPrinter(order);
   };
 
-const handleSendToCart = async (order) => {
-  setSendingToCart(true);
-  setSentOrderId(order._id);
-  
-  try {
-    // Add each item from the order to the cart
-    for (const item of order.items) {
-      await addToCart(item.productId || item._id, item.quantity);
-    }
+  const handleSendToCart = async (order) => {
+    setSendingToCart(true);
+    setSentOrderId(order._id);
     
-    // Show success for 2 seconds
-    setTimeout(() => {
+    try {
+      // ✅ Vider le panier avant d'ajouter les nouveaux articles
+      clearCart();
+      
+      // ✅ Add order to localStorage for Achat.jsx
+      const existingPurchases = JSON.parse(localStorage.getItem("purchases")) || [];
+      existingPurchases.push(order);
+      localStorage.setItem("purchases", JSON.stringify(existingPurchases));
+
+      // ✅ Add each item from the order to the cart
+      for (const item of order.items) {
+        await addToCart(item.productId || item._id, item.quantity);
+      }
+      
+      // Show success for 2 seconds
+      setTimeout(() => {
+        setSendingToCart(false);
+        setSentOrderId(null);
+      }, 2000);
+    } catch (error) {
+      console.error("Error sending to cart:", error);
       setSendingToCart(false);
       setSentOrderId(null);
-    }, 2000);
-  } catch (error) {
-    console.error("Error sending to cart:", error);
-    setSendingToCart(false);
-    setSentOrderId(null);
-  }
-};
+    }
+  };
 
+  // Format date to dd/mm/yy
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    return `${day}/${month}/${year}`;
+  };
+
+  // Format time to hh:mm
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
 
   // Auto print when order is selected (fallback)
   useEffect(() => {
@@ -261,76 +284,60 @@ const handleSendToCart = async (order) => {
         ) : (
           <div className="space-y-6">
             {orderData.map((order) => (
-              <div key={order._id} className="bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
+              <div key={order._id} className="bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md border border-gray-100">
                 <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex-1">
                     <h3 className="text-white font-bold text-lg">
                       الطلب #{order._id.slice(-6).toUpperCase()}
                     </h3>
-                    <p className="text-blue-100 text-sm mt-1">
-                      {new Date(order.createdAt).toLocaleDateString('ar-EG')} -{" "}
-                      {new Date(order.createdAt).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'})}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-3 mt-2">
+                      <p className="text-blue-100 text-sm bg-blue-700/30 px-2 py-1 rounded-md">
+                        {formatDate(order.createdAt)} - {formatTime(order.createdAt)}
+                      </p>
+                      <StatusBadge status={order.status} />
+                    </div>
                   </div>
-                  <StatusBadge status={order.status} />
+                  <div className="text-white text-lg font-bold">
+                    {currency} {order.amount.toFixed(2)}
+                  </div>
                 </div>
 
                 <div className="p-5">
-                  <div className="overflow-x-auto rounded-lg border border-gray-200">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الصنف</th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">الكمية</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">السعر</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المجموع</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {order.items.map((item, i) => (
-                          <tr key={i} className="hover:bg-gray-50 transition-colors duration-150">
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <img
-                                  src={
-                                    Array.isArray(item.image)
-                                      ? item.image[0]
-                                      : item.image || "/no-image.png"
-                                  }
-                                  alt={item.name}
-                                  className="w-12 h-12 rounded-lg object-cover mr-3 hide-on-print shadow-sm"
-                                />
-                                <div className="text-right">
-                                  <p className="text-sm font-medium text-gray-900">{item.name}</p>
-                                  {item.description && (
-                                    <p className="text-xs text-gray-500 mt-1 line-clamp-1">{item.description}</p>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-4 text-center whitespace-nowrap text-sm text-gray-500">
-                              <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full">
-                                {item.quantity}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-right whitespace-nowrap text-sm text-gray-500">
-                              {currency} {item.price.toFixed(2)}
-                            </td>
-                            <td className="px-4 py-4 text-right whitespace-nowrap text-sm font-medium text-gray-900">
-                              {currency} {(item.price * item.quantity).toFixed(2)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    {order.items.map((item, i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex-shrink-0">
+                          <img
+                            src={
+                              Array.isArray(item.image)
+                                ? item.image[0]
+                                : item.image || "/no-image.png"
+                            }
+                            alt={item.name}
+                            className="w-16 h-16 rounded-lg object-cover shadow-sm"
+                            onError={(e) => {
+                              e.target.src = "/no-image.png";
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1 text-right">
+                          <h4 className="font-medium text-gray-900">{item.name}</h4>
+                          <p className="text-sm text-gray-500 mt-1">الكمية: {item.quantity}</p>
+                          <p className="text-sm font-medium text-blue-600 mt-1">
+                            {currency} {item.price.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
-                  <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-5 border-t border-gray-200 gap-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-center pt-5 border-t border-gray-200 gap-4">
                     <div className="text-xl font-bold text-gray-900">
                       الإجمالي: {currency} {order.amount.toFixed(2)}
                     </div>
                     
-                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <div className="flex flex-wrap gap-3">
+                      {/* زر الإضافة للسلة */}
                       <button
                         onClick={() => handleSendToCart(order)}
                         disabled={sendingToCart && sentOrderId === order._id}
@@ -339,7 +346,7 @@ const handleSendToCart = async (order) => {
                             ? 'bg-green-600' 
                             : 'bg-blue-600 hover:bg-blue-700'
                         } text-white px-5 py-2.5 rounded-lg transition-colors duration-200 font-medium`}
-                       >
+                      >
                         {sendingToCart && sentOrderId === order._id ? (
                           <>
                             <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -350,33 +357,21 @@ const handleSendToCart = async (order) => {
                           </>
                         ) : (
                           <>
+                            <FaTrash className="text-xs" />
                             <FaShoppingCart />
-                            إضافة إلى السلة
+                            إضافة جديدة إلى السلة
                           </>
                         )}
                       </button>
-                      
+
+                      {/* زر الطباعة */}
                       <button
                         onClick={() => handlePrintInvoice(order)}
-                        disabled={isPrinting}
-                        className={`flex items-center justify-center gap-2 ${
-                          isPrinting ? 'bg-gray-400' : 'bg-gray-800 hover:bg-gray-900'
-                        } text-white px-5 py-2.5 rounded-lg transition-colors duration-200 font-medium`}
+                        disabled={isPrinting && selectedOrder?._id === order._id}
+                        className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-900 text-white px-5 py-2.5 rounded-lg transition-colors duration-200 font-medium"
                       >
-                        {isPrinting ? (
-                          <>
-                            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            جاري الطباعة...
-                          </>
-                        ) : (
-                          <>
-                            <FaPrint />
-                            طباعة الفاتورة
-                          </>
-                        )}
+                        <FaPrint />
+                        طباعة الفاتورة
                       </button>
                     </div>
                   </div>
@@ -417,8 +412,8 @@ const handleSendToCart = async (order) => {
           
           <div className="mb-6">
             <p><strong>رقم الفاتورة:</strong> #{selectedOrder._id.slice(-6).toUpperCase()}</p>
-            <p><strong>التاريخ:</strong> {new Date(selectedOrder.createdAt).toLocaleDateString('ar-EG')}</p>
-            <p><strong>الوقت:</strong> {new Date(selectedOrder.createdAt).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'})}</p>
+            <p><strong>التاريخ:</strong> {formatDate(selectedOrder.createdAt)}</p>
+            <p><strong>الوقت:</strong> {formatTime(selectedOrder.createdAt)}</p>
           </div>
           
           <table className="w-full border-collapse border border-gray-300 mb-6">

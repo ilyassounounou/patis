@@ -17,12 +17,32 @@ const EmployerPage = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [editingTable, setEditingTable] = useState("");
 
+  // دالة لتنسيق التاريخ بالشكل المطلوب (12/02/25)
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    return `${day}/${month}/${year}`;
+  };
+
+  // دالة لتنسيق الوقت بالشكل المطلوب (12:34)
+  const formatTime = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
   // الحصول على التاريخ والوقت الحالي
   const getCurrentDateTime = () => {
     const now = new Date();
-    const date = now.toLocaleDateString('ar-EG');
-    const time = now.toLocaleTimeString('ar-EG');
-    return { date, time };
+    return {
+      date: formatDate(now),
+      time: formatTime(now)
+    };
   };
 
   // ✅ Load data from localStorage & fetch employers
@@ -330,32 +350,39 @@ const EmployerPage = () => {
       .reduce((total, absence) => total + absence.days, 0);
   };
 
+  // Calculate total advances per employee
+  const getTotalAdvances = (employeeName) => {
+    return advances
+      .filter(advance => advance.name === employeeName && advance.advance)
+      .reduce((total, advance) => total + (parseFloat(advance.advance) || 0), 0);
+  };
+
   return (
-    <div className="p-5 bg-gray-50 min-h-screen">
+    <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-            <h3 className="text-xl font-bold text-red-600 mb-4">تأكيد الحذف</h3>
-            <p className="mb-4">يرجى إدخال الكود <span className="font-bold">2345</span> لتأكيد عملية الحذف:</p>
+          <div className="bg-white p-6 rounded-xl shadow-xl w-96">
+            <h3 className="text-xl font-bold text-red-600 mb-4 text-center">تأكيد الحذف</h3>
+            <p className="mb-4 text-right">يرجى إدخال الكود <span className="font-bold">2345</span> لتأكيد عملية الحذف:</p>
             <input
               type="password"
               value={securityCode}
               onChange={(e) => setSecurityCode(e.target.value)}
-              className="border border-gray-300 p-2 w-full rounded mb-2"
+              className="border border-gray-300 p-2 w-full rounded mb-2 text-center"
               placeholder="أدخل الكود هنا"
             />
-            {errorMessage && <p className="text-red-500 mb-2">{errorMessage}</p>}
+            {errorMessage && <p className="text-red-500 mb-2 text-center">{errorMessage}</p>}
             <div className="flex justify-between mt-4">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
               >
                 إلغاء
               </button>
               <button
                 onClick={() => executeAction(true)}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
               >
                 تأكيد الحذف
               </button>
@@ -367,27 +394,27 @@ const EmployerPage = () => {
       {/* Edit Confirmation Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-            <h3 className="text-xl font-bold text-blue-600 mb-4">تأكيد التعديل</h3>
-            <p className="mb-4">يرجى إدخال الكود <span className="font-bold">2345</span> لتأكيد عملية التعديل:</p>
+          <div className="bg-white p-6 rounded-xl shadow-xl w-96">
+            <h3 className="text-xl font-bold text-blue-600 mb-4 text-center">تأكيد التعديل</h3>
+            <p className="mb-4 text-right">يرجى إدخال الكود <span className="font-bold">2345</span> لتأكيد عملية التعديل:</p>
             <input
               type="password"
               value={securityCode}
               onChange={(e) => setSecurityCode(e.target.value)}
-              className="border border-gray-300 p-2 w-full rounded mb-2"
+              className="border border-gray-300 p-2 w-full rounded mb-2 text-center"
               placeholder="أدخل الكود هنا"
             />
-            {errorMessage && <p className="text-red-500 mb-2">{errorMessage}</p>}
+            {errorMessage && <p className="text-red-500 mb-2 text-center">{errorMessage}</p>}
             <div className="flex justify-between mt-4">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
               >
                 إلغاء
               </button>
               <button
                 onClick={() => executeAction(false)}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
               >
                 تأكيد التعديل
               </button>
@@ -402,18 +429,18 @@ const EmployerPage = () => {
         </div>
       )}
 
-      <h1 className="text-2xl font-bold text-center mb-8 text-gray-800">نظام إدارة الموظفين</h1>
+      <h1 className="text-3xl font-bold text-center mb-8 text-blue-800 pt-4">نظام إدارة الموظفين</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
         {/* المواد المستعملة */}
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-white rounded-xl shadow-lg p-5 border border-blue-100">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-blue-700">📦 المواد المستعملة</h2>
+            <h2 className="text-xl font-bold text-blue-700">📦 المواد المستعملة</h2>
             <div className="flex gap-2">
-              <button onClick={addArticleRow} className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition">
+              <button onClick={addArticleRow} className="bg-blue-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-600 transition flex items-center gap-1">
                 ➕ إضافة
               </button>
-              <button onClick={() => confirmDelete(clearArticles, null, "articles")} className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition">
+              <button onClick={() => confirmDelete(clearArticles, null, "articles")} className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-600 transition flex items-center gap-1">
                 🗑 مسح الكل
               </button>
             </div>
@@ -432,13 +459,13 @@ const EmployerPage = () => {
               </thead>
               <tbody>
                 {articles.map((item, idx) => (
-                  <tr key={item.id} className="hover:bg-blue-50">
+                  <tr key={item.id} className="hover:bg-blue-50 transition-colors">
                     <td className="border border-blue-200 p-2">
                       <input
                         type="text"
                         value={item.name}
                         onChange={e => handleArticleChange(idx, "name", e.target.value)}
-                        className="border border-gray-300 p-1 w-full rounded"
+                        className="border border-gray-300 p-1 w-full rounded text-right"
                         placeholder="اسم المادة"
                         readOnly={item.isSaved}
                       />
@@ -448,7 +475,7 @@ const EmployerPage = () => {
                         type="number"
                         value={item.price}
                         onChange={e => handleArticleChange(idx, "price", e.target.value)}
-                        className="border border-gray-300 p-1 w-full rounded"
+                        className="border border-gray-300 p-1 w-full rounded text-right"
                         placeholder="السعر"
                         readOnly={item.isSaved}
                       />
@@ -460,7 +487,7 @@ const EmployerPage = () => {
                         {!item.isSaved ? (
                           <button 
                             onClick={() => saveItem(item, "articles")}
-                            className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition"
+                            className="bg-green-500 text-white px-3 py-1 rounded text-xs hover:bg-green-600 transition"
                           >
                             حفظ
                           </button>
@@ -468,13 +495,13 @@ const EmployerPage = () => {
                           <>
                             <button 
                               onClick={() => confirmEdit(editItem, item, "articles")}
-                              className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition"
+                              className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition"
                             >
                               تعديل
                             </button>
                             <button 
                               onClick={() => confirmDelete(deleteItem, item, "articles")}
-                              className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition"
+                              className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600 transition"
                             >
                               حذف
                             </button>
@@ -488,20 +515,20 @@ const EmployerPage = () => {
             </table>
           </div>
           
-          <div className="mt-4 font-bold text-blue-800 text-center p-2 bg-blue-100 rounded">
-            الإجمالي: {totalArticles} درهم
+          <div className="mt-4 font-bold text-blue-800 text-center p-3 bg-blue-100 rounded-lg">
+            الإجمالي: {totalArticles.toFixed(2)} درهم
           </div>
         </div>
 
         {/* السلف للموظفين */}
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-white rounded-xl shadow-lg p-5 border border-green-100">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-green-700">💵 السلف للموظفين</h2>
+            <h2 className="text-xl font-bold text-green-700">💵 السلف للموظفين</h2>
             <div className="flex gap-2">
-              <button onClick={addAdvanceRow} className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition">
+              <button onClick={addAdvanceRow} className="bg-green-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-600 transition flex items-center gap-1">
                 ➕ إضافة
               </button>
-              <button onClick={() => confirmDelete(clearAdvances, null, "advances")} className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition">
+              <button onClick={() => confirmDelete(clearAdvances, null, "advances")} className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-600 transition flex items-center gap-1">
                 🗑 مسح الكل
               </button>
             </div>
@@ -521,12 +548,12 @@ const EmployerPage = () => {
               </thead>
               <tbody>
                 {advances.map((item, idx) => (
-                  <tr key={item.id} className="hover:bg-green-50">
+                  <tr key={item.id} className="hover:bg-green-50 transition-colors">
                     <td className="border border-green-200 p-2">
                       <select
                         value={item.name}
                         onChange={e => handleAdvanceChange(idx, "name", e.target.value)}
-                        className="border border-gray-300 p-1 w-full rounded"
+                        className="border border-gray-300 p-1 w-full rounded text-right"
                         disabled={item.isSaved}
                       >
                         <option value="">اختر موظف</option>
@@ -538,12 +565,12 @@ const EmployerPage = () => {
                         type="number"
                         value={item.advance}
                         onChange={e => handleAdvanceChange(idx, "advance", e.target.value)}
-                        className="border border-gray-300 p-1 w-full rounded"
+                        className="border border-gray-300 p-1 w-full rounded text-right"
                         placeholder="المبلغ"
                         readOnly={item.isSaved}
                       />
                     </td>
-                    <td className="border border-green-200 p-2 text-center">{item.remaining} درهم</td>
+                    <td className="border border-green-200 p-2 text-center">{item.remaining.toFixed(2)} درهم</td>
                     <td className="border border-green-200 p-2 text-center text-sm">{item.date || "-"}</td>
                     <td className="border border-green-200 p-2 text-center text-sm">{item.time || "-"}</td>
                     <td className="border border-green-200 p-2 text-center">
@@ -551,7 +578,7 @@ const EmployerPage = () => {
                         {!item.isSaved ? (
                           <button 
                             onClick={() => saveItem(item, "advances")}
-                            className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition"
+                            className="bg-green-500 text-white px-3 py-1 rounded text-xs hover:bg-green-600 transition"
                           >
                             حفظ
                           </button>
@@ -559,13 +586,13 @@ const EmployerPage = () => {
                           <>
                             <button 
                               onClick={() => confirmEdit(editItem, item, "advances")}
-                              className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition"
+                              className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition"
                             >
                               تعديل
                             </button>
                             <button 
                               onClick={() => confirmDelete(deleteItem, item, "advances")}
-                              className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition"
+                              className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600 transition"
                             >
                               حذف
                             </button>
@@ -581,14 +608,14 @@ const EmployerPage = () => {
         </div>
 
         {/* إدارة الغياب */}
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-white rounded-xl shadow-lg p-5 border border-purple-100">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-purple-700">📅 إدارة الغياب</h2>
+            <h2 className="text-xl font-bold text-purple-700">📅 إدارة الغياب</h2>
             <div className="flex gap-2">
-              <button onClick={addAbsenceRow} className="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600 transition">
+              <button onClick={addAbsenceRow} className="bg-purple-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-purple-600 transition flex items-center gap-1">
                 ➕ إضافة
               </button>
-              <button onClick={() => confirmDelete(clearAbsences, null, "absences")} className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition">
+              <button onClick={() => confirmDelete(clearAbsences, null, "absences")} className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-600 transition flex items-center gap-1">
                 🗑 مسح الكل
               </button>
             </div>
@@ -609,12 +636,12 @@ const EmployerPage = () => {
               </thead>
               <tbody>
                 {absences.map((item, idx) => (
-                  <tr key={item.id} className="hover:bg-purple-50">
+                  <tr key={item.id} className="hover:bg-purple-50 transition-colors">
                     <td className="border border-purple-200 p-2">
                       <select
                         value={item.name}
                         onChange={e => handleAbsenceChange(idx, "name", e.target.value)}
-                        className="border border-gray-300 p-1 w-full rounded"
+                        className="border border-gray-300 p-1 w-full rounded text-right"
                         disabled={item.isSaved}
                       >
                         <option value="">اختر موظف</option>
@@ -647,7 +674,7 @@ const EmployerPage = () => {
                         {!item.isSaved ? (
                           <button 
                             onClick={() => saveItem(item, "absences")}
-                            className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition"
+                            className="bg-green-500 text-white px-3 py-1 rounded text-xs hover:bg-green-600 transition"
                           >
                             حفظ
                           </button>
@@ -655,13 +682,13 @@ const EmployerPage = () => {
                           <>
                             <button 
                               onClick={() => confirmEdit(editItem, item, "absences")}
-                              className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition"
+                              className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition"
                             >
                               تعديل
                             </button>
                             <button 
                               onClick={() => confirmDelete(deleteItem, item, "absences")}
-                              className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition"
+                              className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600 transition"
                             >
                               حذف
                             </button>
@@ -677,22 +704,55 @@ const EmployerPage = () => {
         </div>
       </div>
 
-      {/* إجمالي أيام الغياب */}
-      <div className="mt-8 bg-white rounded-lg shadow-md p-4">
-        <h2 className="text-lg font-bold text-gray-700 mb-4 text-center">📊 إجمالي أيام الغياب لكل موظف</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {employers.map(emp => (
-            <div key={emp._id} className="bg-gray-100 p-3 rounded-lg shadow-sm text-center">
-              <div className="font-bold text-gray-800">{emp.fullName}</div>
-              <div className="text-blue-600 font-semibold">{getTotalAbsenceDays(emp.fullName)} يوم</div>
-            </div>
-          ))}
+      {/* إجمالي أيام الغياب والسلف */}
+      <div className="mt-8 bg-white rounded-xl shadow-lg p-6 max-w-7xl mx-auto">
+        <h2 className="text-xl font-bold text-gray-700 mb-6 text-center border-b-2 border-gray-100 pb-3">📊 إجمالي أيام الغياب والسلف لكل موظف</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {employers.map(emp => {
+            const totalAbsenceDays = getTotalAbsenceDays(emp.fullName);
+            const totalAdvances = getTotalAdvances(emp.fullName);
+            const remainingSalary = emp.weeklySalary - totalAdvances;
+            
+            return (
+              <div key={emp._id} className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200 shadow-sm">
+                <h3 className="font-bold text-blue-800 text-lg mb-3 text-center">{emp.fullName}</h3>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">الراتب الأساسي:</span>
+                    <span className="font-semibold text-blue-700">{emp.weeklySalary.toFixed(2)} درهم</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">إجمالي السلف:</span>
+                    <span className="font-semibold text-red-600">
+                      {totalAdvances.toFixed(2)} درهم
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">أيام الغياب:</span>
+                    <span className="font-semibold text-orange-600">
+                      {totalAbsenceDays} يوم
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center pt-2 border-t border-blue-100">
+                    <span className="text-sm font-medium text-gray-700">المتبقي:</span>
+                    <span className="font-bold text-green-600">
+                      {remainingSalary.toFixed(2)} درهم
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* تاريخ ووقت النظام */}
-      <div className="mt-4 text-center text-sm text-gray-500">
-        آخر تحديث: {new Date().toLocaleString('ar-EG')}
+      <div className="mt-6 text-center text-sm text-gray-500 pb-4">
+        آخر تحديث: {formatDate(new Date())} {formatTime(new Date())}
       </div>
     </div>
   );
